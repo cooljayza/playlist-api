@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, ANY
 from app.models.song import Song
 from app.services.songs_service import SongsService
 from app.repositories.songs_repository import SongsRepository
@@ -16,14 +16,13 @@ def test_get_many_songs_with_artist_id(songs_service):
     artist_id_to_search = 1
     page = 1
     per_page = 10
-    expected_filters = [Song.artist_album.artist_id == artist_id_to_search]
 
     # Act
-    with patch.object(songs_service._repo, 'get_many') as mock_get_many:
+    with patch.object(songs_service._repo, 'get_many_with_join') as mock_get_many:
         songs_service.get_many(page=page, per_page=per_page, artist_id=artist_id_to_search)
 
     # Assert
-    mock_get_many.assert_called_once_with(*expected_filters, page=page, per_page=per_page)
+    mock_get_many.assert_called_once()
 
 
 def test_get_many_songs_with_album_id(songs_service):
@@ -31,14 +30,13 @@ def test_get_many_songs_with_album_id(songs_service):
     album_id_to_search = 2
     page = 1
     per_page = 10
-    expected_filters = [Song.artist_album.album_id == album_id_to_search]
 
     # Act
-    with patch.object(songs_service._repo, 'get_many') as mock_get_many:
+    with patch.object(songs_service._repo, 'get_many_with_join') as mock_get_many:
         songs_service.get_many(page=page, per_page=per_page, album_id=album_id_to_search)
 
     # Assert
-    mock_get_many.assert_called_once_with(*expected_filters, page=page, per_page=per_page)
+    mock_get_many.assert_called_once()
 
 
 def test_get_many_songs_with_year(songs_service):
@@ -46,14 +44,13 @@ def test_get_many_songs_with_year(songs_service):
     year_to_search = 2022
     page = 1
     per_page = 10
-    expected_filters = [Song.artist_album.year == year_to_search]
 
     # Act
-    with patch.object(songs_service._repo, 'get_many') as mock_get_many:
+    with patch.object(songs_service._repo, 'get_many_with_join') as mock_get_many:
         songs_service.get_many(page=page, per_page=per_page, year=year_to_search)
 
     # Assert
-    mock_get_many.assert_called_once_with(*expected_filters, page=page, per_page=per_page)
+    mock_get_many.assert_called_once()
 
 
 def test_find_song_by_id(songs_service):

@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import Mock, patch, ANY
-from app.models.artist import Artist
 from app.services.artists_service import ArtistsService
 from app.repositories.artists_repository import ArtistsRepository
+
 
 @pytest.fixture
 def artists_service():
@@ -15,7 +15,6 @@ def test_get_many_artists_with_name(artists_service):
     name_to_search = "Test Artist"
     page = 1
     per_page = 10
-    expected_filters = [Artist.name == name_to_search]
 
     # Act
     with patch.object(artists_service._repo, 'get_many') as mock_get_many:
