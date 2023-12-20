@@ -73,7 +73,8 @@ async def get_playlist_songs(playlist_id, bg_tasks: BackgroundTasks, playlist: P
 async def shuffle_playlist(playlist_id, bg_tasks: BackgroundTasks, playlist: Playlist = Depends(playlist_validator),
                            service: PlaylistsService = Depends(get_playlist_service)):
     playlist = service.shuffle_playlist(playlist)
-    songs = [PlaylistSongResponse(rank=song.rank, song=SongResponse().from_model(song.song)) for song in playlist.playlist_songs]
+    songs = [PlaylistSongResponse(rank=song.rank, song=SongResponse().from_model(song.song)) for song in
+             playlist.playlist_songs]
     bg_tasks.add_task(log_playlist_songs, playlist, service)
     return songs
 
@@ -96,8 +97,8 @@ async def update_playlist(playlist_id, updated: CreatePlaylistRequest, playlist:
 
 
 @router.delete('/{playlist_id}/songs/{song_id}')
-async def remove_song_from_playlist(playlist_id, song_id, playlist: Playlist = Depends(playlist_validator), service:
-                                    PlaylistsService = Depends(get_playlist_service)):
+async def remove_song_from_playlist(playlist_id, song_id, playlist: Playlist = Depends(playlist_validator),
+                                    service: PlaylistsService = Depends(get_playlist_service)):
     playlist_songs = [pl for pl in playlist.playlist_songs if pl.song_id == int(song_id)]
     if len(playlist_songs) > 0:
         playlist_song = playlist_songs[0]
@@ -110,14 +111,30 @@ async def remove_song_from_playlist(playlist_id, song_id, playlist: Playlist = D
 
 
 @router.put('/{playlist_id}/swap', response_model=List[PlaylistSongResponse])
-async def swap_playlist_songs(playlist_id, songs: PlaylistSongSwap, playlist: Playlist = Depends(playlist_validator), service:
+async def swap_playlist_songs(playlist_id, songs: PlaylistSongSwap, playlist: Playlist = Depends(playlist_validator),
+                              service:
                               PlaylistsService = Depends(get_playlist_service)):
-
     songs_1 = [pl for pl in playlist.playlist_songs if pl.song_id == songs.song1_id]
     songs_2 = [pl for pl in playlist.playlist_songs if pl.song_id == songs.song2_id]
 
     if len(songs_1) > 0 and len(songs_2) > 0:
         service.swap_playlist_order(songs_1[0], songs_2[0])
-        return [PlaylistSongResponse(rank=pl.rank, song=SongResponse().from_model(pl.song)) for pl in playlist.playlist_songs]
+        return [PlaylistSongResponse(rank=pl.rank, song=SongResponse().from_model(pl.song)) for pl in
+                playlist.playlist_songs]
 
     raise HTTPException(422, 'Not all songs found in playlist')
+
+
+@router.get('/search')
+async def search_playlist(q: str = Query(), page: int = Query(1, ge=1), per_page: int = Query(100, ge=1),
+                          service: PlaylistsService = Depends(get_playlist_service)):
+    results = service.search_playlist(q, page, per_page)
+    new_items = []
+    for playlist in results['items']:
+        new_items.append({
+            'playlist': CreatePlaylistResponse(**playlist.dict()),
+            'songs': [PlaylistSongResponse(rank=song.rank, song=SongResponse().from_model(song.song))
+                      for song in playlist.playlist_songs if song.isActive]
+        })
+    results['items'] = new_items
+    return results

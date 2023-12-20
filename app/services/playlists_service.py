@@ -4,6 +4,7 @@ from app.models.playlist_song import PlaylistSong
 from app.models.song import Song
 from typing import Optional
 import random
+from sqlmodel import or_
 
 
 class PlaylistsService:
@@ -16,6 +17,11 @@ class PlaylistsService:
             return old_playlist
 
         return self._repo.add(playlist)
+
+    def search_playlist(self, query, page, per_page):
+        filters = [or_(Playlist.name.ilike(f'%{query}%'), Song.title.ilike(f'%{query}%'))]
+        return self._repo.get_many_with_two_joins(PlaylistSong, Song, 'playlist_songs',
+                                                  'song', *filters, page=page, per_page=per_page)
 
     def add_song_to_playlist(self, playlist: Playlist, song: Song) -> PlaylistSong:
         to_add = True

@@ -4,13 +4,14 @@ from sqlalchemy.orm.session import SessionTransaction
 
 
 class SqlStore:
-    def __init__(self,  connection_string):
+    def __init__(self, connection_string):
         self._connection_string = connection_string
         self.transaction: SessionTransaction = None
         self.session: Session = None
 
     def connect(self):
-        self.session = Session(create_engine(self._connection_string, echo=True, connect_args={'check_same_thread': False}))
+        self.session = Session(
+            create_engine(self._connection_string, echo=True, connect_args={'check_same_thread': False}))
 
     def begin_transaction(self):
         self.transaction = self.session.begin()
@@ -60,11 +61,34 @@ class SqlStore:
 
     def filter(self, model, *where_statements, page, per_page):
         limit = per_page * page
-        offset = (page-1) * per_page
+        offset = (page - 1) * per_page
 
         results = self.session.exec(select(model).limit(limit).offset(offset).where(*where_statements))
         count = self.session.scalar(select(func.count(model.id)).where(*where_statements))
-        
+
+        return {'items': results, 'count': count}
+
+    def filter_with_join(self, primary_model, secondary_model, prim_target, *filters, page, per_page):
+        limit = per_page * page
+        offset = (page - 1) * per_page
+        results = self.session.exec(select(primary_model).join(secondary_model, prim_target).limit(limit)
+                                    .offset(offset).where(*filters))
+        count = self.session.scalar(select(func.count(primary_model.id)).join(secondary_model, prim_target)
+                                    .where(*filters))
+        return {'items': results, 'count': count}
+
+    def filter_with_two_joins(self, primary_model, secondary_model, tertiary_model, primary_target, secondary_target,
+                              *filters, page, per_page):
+        limit = per_page * page
+        offset = (page - 1) * per_page
+
+        results = self.session.exec(select(primary_model).join(secondary_model, primary_target)
+                                    .join(tertiary_model, secondary_target).limit(limit).offset(offset)
+                                    .where(*filters))
+
+        count = self.session.scalar(select(func.count(primary_model.id)).join(secondary_model, primary_target)
+                                    .join(tertiary_model, secondary_target).where(*filters))
+
         return {'items': results, 'count': count}
 
     def _save(self):
