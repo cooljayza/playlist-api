@@ -57,7 +57,11 @@ async def get_many_playlists(page: int = Query(1, ge=1), per_page: int = Query(1
 
 @router.get('/{playlist_id}/songs', response_model=List[PlaylistSongResponse])
 async def get_playlist_songs(playlist_id, bg_tasks: BackgroundTasks, playlist: Playlist = Depends(playlist_validator),
-                             service: PlaylistsService = Depends(get_playlist_service)):
+                             service: PlaylistsService = Depends(get_playlist_service),
+                             order: str = Query('asc', enum=['asc', 'desc']),
+                             sort_by: str = Query('rank', enum=['rank', 'title', 'artist', 'year', 'album'])):
+
+    playlist = service.sort_playlist_songs(playlist, sort_by, order)
     songs = [PlaylistSongResponse(rank=song.rank, song=SongResponse().from_model(song.song))
              for song in playlist.playlist_songs if song.isActive]
     bg_tasks.add_task(log_playlist_songs, playlist, service)
@@ -75,8 +79,8 @@ async def shuffle_playlist(playlist_id, bg_tasks: BackgroundTasks, playlist: Pla
 
 
 @router.delete('/{playlist_id}', response_model=CreatePlaylistResponse)
-async def delete_playlist(playlist_id, playlist: Playlist = Depends(playlist_validator), service: PlaylistsService
-= Depends(get_playlist_service)):
+async def delete_playlist(playlist_id, playlist: Playlist = Depends(playlist_validator),
+                          service: PlaylistsService = Depends(get_playlist_service)):
     return service.delete_playlist(playlist)
 
 

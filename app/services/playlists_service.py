@@ -15,6 +15,8 @@ Song.playlist_song = relationship(PlaylistSong, back_populates='song')
 class PlaylistsService:
     def __init__(self, repo: PlaylistsRepository):
         self._repo = repo
+        self._sort_look_up = {'title': 'song.title', 'rank': 'rank', 'artist': 'song.artist_album.artist.name',
+                              'album': 'song.artist_album.album.title', 'year': 'song.artist_album.year'}
 
     def add_playlist(self, playlist: Playlist):
         old_playlist = self._repo.get_many(Playlist.name == playlist.name)['items'].first()
@@ -102,3 +104,17 @@ class PlaylistsService:
                 count += 1
                 item.rank = count
         return self._repo.update(playlist)
+
+    def _get_target_from_string_attr(self, playlist_song: PlaylistSong, string_attr: str):
+        targets = self._sort_look_up[string_attr].split('.')
+        target = playlist_song
+        for attr in targets:
+            target = getattr(target, attr)
+        return target
+
+    def sort_playlist_songs(self, playlist: Playlist, sort_by, order):
+        reverse = order == 'desc'
+        playlist.playlist_songs = sorted(playlist.playlist_songs, key=lambda x: self._get_target_from_string_attr(
+            x, sort_by), reverse=reverse)
+
+        return playlist
