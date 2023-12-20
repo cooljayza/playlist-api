@@ -9,14 +9,9 @@ from app.schemas.playlist_swap import PlaylistSongSwap
 from app.schemas.song_schema import SongResponse
 from app.schemas.playlist_song import PlaylistSongResponse
 from app.schemas.create_playlist_song import CreatePlaylistSongRequest, CreatePlaylistSongResponse
-from sqlalchemy.orm import relationship
 from typing import List, Optional
-from app.models.song import Song
 from app.services.workers.playlist_request_logger import log_playlist_songs
-from app.models.playlist_song import PlaylistSong
 
-PlaylistSong.song = relationship(Song, back_populates='playlist_song')
-Song.playlist_song = relationship(PlaylistSong, back_populates='song')
 
 router = APIRouter(
     prefix='/playlists', tags=['Playlists']
@@ -126,8 +121,8 @@ async def swap_playlist_songs(playlist_id, songs: PlaylistSongSwap, playlist: Pl
 
 
 @router.get('/search')
-async def search_playlist(q: str = Query(), page: int = Query(1, ge=1), per_page: int = Query(100, ge=1),
-                          service: PlaylistsService = Depends(get_playlist_service)):
+async def search_playlist(bg_tasks: BackgroundTasks, q: str = Query(), page: int = Query(1, ge=1),
+                          per_page: int = Query(100, ge=1), service: PlaylistsService = Depends(get_playlist_service)):
     results = service.search_playlist(q, page, per_page)
     new_items = []
     for playlist in results['items']:
@@ -136,5 +131,6 @@ async def search_playlist(q: str = Query(), page: int = Query(1, ge=1), per_page
             'songs': [PlaylistSongResponse(rank=song.rank, song=SongResponse().from_model(song.song))
                       for song in playlist.playlist_songs if song.isActive]
         })
+        bg_tasks.add_task(log_playlist_songs, playlist, service)
     results['items'] = new_items
     return results

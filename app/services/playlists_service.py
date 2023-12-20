@@ -1,3 +1,4 @@
+from sqlalchemy.orm import relationship
 from app.repositories.playlists_repository import PlaylistsRepository
 from app.models.playlist import Playlist
 from app.models.playlist_song import PlaylistSong
@@ -5,6 +6,10 @@ from app.models.song import Song
 from typing import Optional
 import random
 from sqlmodel import or_
+
+
+PlaylistSong.song = relationship(Song, back_populates='playlist_song')
+Song.playlist_song = relationship(PlaylistSong, back_populates='song')
 
 
 class PlaylistsService:
