@@ -27,8 +27,9 @@ class PlaylistsService:
 
     def search_playlist(self, query, page, per_page):
         filters = [or_(Playlist.name.ilike(f'%{query}%'), Song.title.ilike(f'%{query}%'))]
-        return self._repo.get_many_with_two_joins(PlaylistSong, Song, 'playlist_songs',
-                                                  'song', *filters, page=page, per_page=per_page)
+        joins = [[PlaylistSong, getattr(Playlist, 'playlist_songs')],
+                 [Song, getattr(PlaylistSong, 'song')]]
+        return self._repo.get_many(*filters, page=page, per_page=per_page, joins=joins)
 
     def add_song_to_playlist(self, playlist: Playlist, song: Song) -> PlaylistSong:
         to_add = True

@@ -24,8 +24,8 @@ class BaseSqlRepository:
     def get_by_id(self, identifier):
         return self._store.find(self._model, identifier)
 
-    def get_many(self, *where_clause, page=1, per_page=100):
-        return self._store.filter(self._model, *where_clause, page=page, per_page=per_page)
+    def get_many(self, *where_clause, page=1, per_page=100, joins=None):
+        return self._store.filter(self._model, *where_clause, page=page, per_page=per_page, joins=joins)
 
     def begin_transaction(self):
         self._store.begin_transaction()

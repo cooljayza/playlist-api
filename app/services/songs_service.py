@@ -31,7 +31,8 @@ class SongsService:
         if title:
             filters.append(Song.title.ilike(f'%{title}%'))
 
-        return self._repo.get_many_with_join(ArtistAlbum, 'artist_album', *filters, per_page=per_page, page=page)
+        joins = [[ArtistAlbum, getattr(Song, 'artist_album')]]
+        return self._repo.get_many(*filters, per_page=per_page, page=page, joins=joins)
 
     def find_song_by_id(self, song_id):
         song: Song = self._repo.get_by_id(song_id).first()

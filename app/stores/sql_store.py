@@ -59,35 +59,15 @@ class SqlStore:
         self._save()
         return entity
 
-    def filter(self, model, *where_statements, page, per_page):
+    def filter(self, model, *where_statements, joins=None, page, per_page):
         limit = per_page * page
         offset = (page - 1) * per_page
-
-        results = self.session.exec(select(model).limit(limit).offset(offset).where(*where_statements))
-        count = self.session.scalar(select(func.count(model.id)).where(*where_statements))
-
-        return {'items': results, 'count': count}
-
-    def filter_with_join(self, primary_model, secondary_model, prim_target, *filters, page, per_page):
-        limit = per_page * page
-        offset = (page - 1) * per_page
-        results = self.session.exec(select(primary_model).join(secondary_model, prim_target).limit(limit)
-                                    .offset(offset).where(*filters))
-        count = self.session.scalar(select(func.count(primary_model.id)).join(secondary_model, prim_target)
-                                    .where(*filters))
-        return {'items': results, 'count': count}
-
-    def filter_with_two_joins(self, primary_model, secondary_model, tertiary_model, primary_target, secondary_target,
-                              *filters, page, per_page):
-        limit = per_page * page
-        offset = (page - 1) * per_page
-
-        results = self.session.exec(select(primary_model).join(secondary_model, primary_target)
-                                    .join(tertiary_model, secondary_target).limit(limit).offset(offset)
-                                    .where(*filters))
-
-        count = self.session.scalar(select(func.count(primary_model.id)).join(secondary_model, primary_target)
-                                    .join(tertiary_model, secondary_target).where(*filters))
+        query = select(model).limit(limit).offset(offset).where(*where_statements)
+        if joins:
+            for join in joins:
+                query = query.join(*join)
+        results = self.session.exec(query)
+        count = self.session.scalar(select(func.count(model.id)).select_from(query.alias()))
 
         return {'items': results, 'count': count}
 
